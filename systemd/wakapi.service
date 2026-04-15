@@ -1,0 +1,22 @@
+[Unit]
+Description=Wakapi (self-hosted WakaTime backend)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wakapi
+Group=wakapi
+WorkingDirectory=/opt/wakapi
+ExecStart=/opt/wakapi/wakapi -config /opt/wakapi/wakapi.yaml
+Restart=always
+RestartSec=5
+StateDirectory=wakapi
+ReadWritePaths=/var/lib/wakapi
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
