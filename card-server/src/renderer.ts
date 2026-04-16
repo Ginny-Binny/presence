@@ -193,8 +193,24 @@ export type RenderInput = {
   badges: Badge[]
   activityLargeDataUri: string | null
   activitySmallDataUri: string | null
+  clanBadgeDataUri: string | null
   width: number
   fallbackUserId: string
+}
+
+// Clan tag pill — icon + tag letters, dark pill. Rendered to the right of
+// the username, to the left of public_flags badges. Discord calls this the
+// "guild identity" / primary_guild feature.
+function clanPillHtml(tag: string | null, badgeDataUri: string | null): string {
+  if (!tag) return ''
+  const icon = badgeDataUri
+    ? `<img src="${badgeDataUri}" alt="" style="width:14px;height:14px;display:block"/>`
+    : ''
+  return `
+    <div style="display:flex;align-items:center;gap:4px;padding:2px 6px;background:rgba(255,255,255,0.08);border-radius:4px;flex:none">
+      ${icon}
+      <span style="color:${FG};font:600 11px ${FONT};letter-spacing:0.3px">${escapeHtml(tag)}</span>
+    </div>`
 }
 
 export function renderCard(input: RenderInput): string {
@@ -226,15 +242,19 @@ export function renderCard(input: RenderInput): string {
 
   const avatar = avatarHtml(p, input.profile, input.avatarDataUri, input.decorationDataUri, input.fallbackUserId)
   const badges = badgesHtml(input.badges)
+  const clan = clanPillHtml(input.profile?.clan_tag ?? null, input.clanBadgeDataUri)
 
   const customHtml = customLine
     ? `<div style="color:${MUTED};font:400 13px ${FONT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px">${customLine}</div>`
     : ''
 
-  const usernameRow = badges
+  const usernameExtras = clan || badges
+    ? `<div style="display:flex;align-items:center;gap:6px;flex:none">${clan}${badges}</div>`
+    : ''
+  const usernameRow = usernameExtras
     ? `<div style="display:flex;align-items:center;gap:6px;min-width:0">
          <div style="color:${FG};font:700 16px ${FONT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${username}</div>
-         <div style="display:flex;align-items:center;gap:4px;flex:none">${badges}</div>
+         ${usernameExtras}
        </div>`
     : `<div style="color:${FG};font:700 16px ${FONT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${username}</div>`
 

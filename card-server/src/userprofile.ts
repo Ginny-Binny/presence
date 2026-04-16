@@ -11,6 +11,9 @@ export type UserProfile = {
   public_flags: number
   premium_type: number
   is_animated_avatar: boolean
+  clan_guild_id: string | null
+  clan_tag: string | null
+  clan_badge: string | null
   fetched_at: number
 }
 

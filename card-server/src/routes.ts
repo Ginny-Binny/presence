@@ -7,6 +7,7 @@ import { fetchAvatarDataUri, fetchDecorationDataUri } from './avatar.js'
 import { fetchActivityAsset } from './activityasset.js'
 import { resolveBadges } from './badges.js'
 import { readUserProfile } from './userprofile.js'
+import { fetchClanBadgeDataUri } from './clan.js'
 import { renderCard } from './renderer.js'
 
 type Deps = {
@@ -45,7 +46,7 @@ export async function handleCard(req: IncomingMessage, res: ServerResponse, deps
 
   // Stage 2: derived assets that depend on stage 1 — also parallel.
   const liveActivity = presence?.activities.find((a) => a.type !== 4 && !!a.name)
-  const [avatarDataUri, decorationDataUri, badges, activityLargeDataUri, activitySmallDataUri] =
+  const [avatarDataUri, decorationDataUri, badges, activityLargeDataUri, activitySmallDataUri, clanBadgeDataUri] =
     await Promise.all([
       settled(fetchAvatarDataUri(deps.userId, profile?.avatar ?? presence?.avatar ?? null)),
       settled(fetchDecorationDataUri(profile?.avatar_decoration ?? null)),
@@ -58,6 +59,7 @@ export async function handleCard(req: IncomingMessage, res: ServerResponse, deps
       liveActivity
         ? settled(fetchActivityAsset(liveActivity.application_id ?? null, liveActivity.assets?.small_image))
         : Promise.resolve(null),
+      settled(fetchClanBadgeDataUri(profile?.clan_guild_id ?? null, profile?.clan_badge ?? null)),
     ])
 
   const svg = renderCard({
@@ -69,6 +71,7 @@ export async function handleCard(req: IncomingMessage, res: ServerResponse, deps
     badges: badges ?? [],
     activityLargeDataUri,
     activitySmallDataUri,
+    clanBadgeDataUri,
     width: deps.svgWidth,
     fallbackUserId: deps.userId,
   })

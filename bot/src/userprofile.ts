@@ -16,6 +16,14 @@ type DiscordUser = {
   public_flags: number
   premium_type: number
   avatar_decoration_data: { asset: string; sku_id: string } | null
+  // Clan tag / Guild Identity feature (Discord 2024). Separate from public_flags —
+  // this is what renders as the "CODE" / guild-name pill next to a username.
+  primary_guild: {
+    identity_guild_id: string | null
+    tag: string | null
+    badge: string | null
+    identity_enabled: boolean | null
+  } | null
 }
 
 export type StoredUser = {
@@ -28,6 +36,9 @@ export type StoredUser = {
   public_flags: number
   premium_type: number
   is_animated_avatar: boolean
+  clan_guild_id: string | null
+  clan_tag: string | null
+  clan_badge: string | null
   fetched_at: number
 }
 
@@ -44,6 +55,9 @@ export async function fetchAndStore(redis: Redis, token: string, userId: string)
       return
     }
     const u = (await res.json()) as DiscordUser
+    // Clan fields only count when the user has opted into guild identity,
+    // otherwise Discord still sends the object but without a tag.
+    const clan = u.primary_guild?.identity_enabled ? u.primary_guild : null
     const stored: StoredUser = {
       user_id: u.id,
       username: u.username,
@@ -55,6 +69,9 @@ export async function fetchAndStore(redis: Redis, token: string, userId: string)
       premium_type: u.premium_type ?? 0,
       // Animated avatar hashes start with `a_` — used as a Nitro signal.
       is_animated_avatar: !!u.avatar?.startsWith('a_'),
+      clan_guild_id: clan?.identity_guild_id ?? null,
+      clan_tag: clan?.tag ?? null,
+      clan_badge: clan?.badge ?? null,
       fetched_at: Date.now(),
     }
     await redis.set(`user:${userId}`, JSON.stringify(stored))
