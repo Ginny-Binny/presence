@@ -3,7 +3,10 @@ import type Redis from 'ioredis'
 import { log } from './log.js'
 import { readPresence } from './presence.js'
 import { fetchWakapiStats } from './wakapi.js'
-import { fetchAvatarDataUri } from './avatar.js'
+import { fetchAvatarDataUri, fetchDecorationDataUri } from './avatar.js'
+import { fetchActivityAsset } from './activityasset.js'
+import { resolveBadges } from './badges.js'
+import { readUserProfile } from './userprofile.js'
 import { renderCard } from './renderer.js'
 
 type Deps = {
@@ -30,31 +33,51 @@ export async function handleHealthz(_req: IncomingMessage, res: ServerResponse, 
 }
 
 export async function handleCard(req: IncomingMessage, res: ServerResponse, deps: Deps) {
-  // Fan out all three lookups in parallel; allSettled means a single failure
-  // never poisons the response.
-  const [presenceR, statsR] = await Promise.allSettled([
+  // Stage 1: presence + profile + stats — independent, fan out in parallel.
+  const [presenceR, profileR, statsR] = await Promise.allSettled([
     readPresence(deps.redis, deps.userId),
+    readUserProfile(deps.redis, deps.userId),
     fetchWakapiStats(deps.wakapiUrl, deps.wakapiKey),
   ])
   const presence = presenceR.status === 'fulfilled' ? presenceR.value : null
+  const profile = profileR.status === 'fulfilled' ? profileR.value : null
   const stats = statsR.status === 'fulfilled' ? statsR.value : null
 
-  // Avatar fetch depends on the presence payload, so run it after.
-  const avatarDataUri = presence
-    ? await settled(fetchAvatarDataUri(presence.user_id, presence.avatar))
-    : null
+  // Stage 2: derived assets that depend on stage 1 — also parallel.
+  const liveActivity = presence?.activities.find((a) => a.type !== 4 && !!a.name)
+  const [avatarDataUri, decorationDataUri, badges, activityLargeDataUri, activitySmallDataUri] =
+    await Promise.all([
+      settled(fetchAvatarDataUri(deps.userId, profile?.avatar ?? presence?.avatar ?? null)),
+      settled(fetchDecorationDataUri(profile?.avatar_decoration ?? null)),
+      profile
+        ? settled(resolveBadges(profile.public_flags, profile.premium_type, profile.is_animated_avatar)).then((b) => b ?? [])
+        : Promise.resolve([]),
+      liveActivity
+        ? settled(fetchActivityAsset(liveActivity.application_id ?? null, liveActivity.assets?.large_image))
+        : Promise.resolve(null),
+      liveActivity
+        ? settled(fetchActivityAsset(liveActivity.application_id ?? null, liveActivity.assets?.small_image))
+        : Promise.resolve(null),
+    ])
 
   const svg = renderCard({
     presence,
+    profile,
     stats,
     avatarDataUri,
+    decorationDataUri,
+    badges: badges ?? [],
+    activityLargeDataUri,
+    activitySmallDataUri,
     width: deps.svgWidth,
     fallbackUserId: deps.userId,
   })
 
+  // 5s max-age — browsers will refetch quickly. GitHub's camo proxy still
+  // caches more aggressively at the edge, so README embeds will lag this.
   const headers = {
     'content-type': 'image/svg+xml; charset=utf-8',
-    'cache-control': 'public, max-age=30',
+    'cache-control': 'public, max-age=5, s-maxage=5',
     'access-control-allow-origin': '*',
   }
   if (req.method === 'HEAD') { res.writeHead(200, headers); res.end(); return }

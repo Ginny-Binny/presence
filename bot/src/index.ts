@@ -1,6 +1,7 @@
 import { loadEnv, log } from './log.js'
 import { connectRedis } from './redis.js'
 import { runGateway } from './gateway.js'
+import { startUserProfileLoop } from './userprofile.js'
 
 const env = loadEnv(['DISCORD_TOKEN', 'DISCORD_USER_ID', 'REDIS_URL'])
 
@@ -11,6 +12,9 @@ runGateway({
   userId: env.DISCORD_USER_ID,
   redis,
 })
+
+// REST poll for avatar/badges/decoration — gateway events don't carry them.
+startUserProfileLoop(redis, env.DISCORD_TOKEN, env.DISCORD_USER_ID)
 
 const shutdown = (sig: string) => {
   log.info(`${sig} received, shutting down`)

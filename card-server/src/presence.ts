@@ -6,8 +6,15 @@ export type Activity = {
   name?: string
   details?: string | null
   state?: string | null
-  emoji?: { name?: string } | null
+  application_id?: string | null
+  emoji?: { name?: string; id?: string | null } | null
   timestamps?: { start?: number; end?: number } | null
+  assets?: {
+    large_image?: string | null
+    large_text?: string | null
+    small_image?: string | null
+    small_text?: string | null
+  } | null
 }
 
 export type Presence = {

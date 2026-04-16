@@ -6,9 +6,15 @@ type Activity = {
   name?: string
   details?: string | null
   state?: string | null
+  application_id?: string | null
   emoji?: { name?: string; id?: string | null } | null
   timestamps?: { start?: number; end?: number } | null
-  assets?: unknown
+  assets?: {
+    large_image?: string | null
+    large_text?: string | null
+    small_image?: string | null
+    small_text?: string | null
+  } | null
 }
 
 type RawPresence = {
@@ -36,6 +42,7 @@ function normalizeActivity(a: Activity): Activity {
     name: a.name,
     details: a.details ?? null,
     state: a.state ?? null,
+    application_id: a.application_id ?? null,
     timestamps: a.timestamps ?? null,
     assets: a.assets ?? null,
   }
