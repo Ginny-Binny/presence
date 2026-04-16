@@ -143,10 +143,12 @@ function activityCardHtml(act: Activity, largeDataUri: string | null, smallDataU
     </div>`
 }
 
-// Compact stats row — 3 lang bars + total hours on the right. Designed to
+const MAX_LANGUAGES = 10
+
+// Compact stats row — top languages + total hours on the right. Designed to
 // stack under the activity row so both are visible in one card.
 function statsRowHtml(stats: Stats | null): string {
-  const top = (stats?.languages ?? []).slice(0, 3)
+  const top = (stats?.languages ?? []).slice(0, MAX_LANGUAGES)
   const total = stats ? formatHours(stats.totalHours) : '—'
   const max = Math.max(...top.map((l) => l.hours), 0.0001)
 
@@ -240,7 +242,10 @@ export function renderCard(input: RenderInput): string {
 
   const headerH = 92
   const activityH = live ? 108 : 60
-  const statsH = 78
+  // Stats row: 12px top pad + 18px header + ~17px per bar + 14px bottom pad.
+  // Grow with the actual number of languages so we never clip the last row.
+  const langCount = Math.min(input.stats?.languages?.length ?? 0, MAX_LANGUAGES) || 1
+  const statsH = 12 + 18 + langCount * 17 + 14
   const h = headerH + activityH + statsH
 
   const avatar = avatarHtml(p, input.profile, input.avatarDataUri, input.decorationDataUri, input.fallbackUserId)

@@ -92,8 +92,9 @@ const activityCardHtml = (act, largeUri, smallUri) => {
   return `<div style="display:flex;flex-direction:row;gap:18px;padding:14px 16px;align-items:center">${tileEl}<div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">${lines}</div></div>`
 }
 
+const MAX_LANGUAGES = 10
 const statsRowHtml = (stats) => {
-  const top = (stats?.languages ?? []).slice(0, 3)
+  const top = (stats?.languages ?? []).slice(0, MAX_LANGUAGES)
   const total = stats ? formatHours(stats.totalHours) : '—'
   const max = Math.max(...top.map((l) => l.hours), 0.0001)
   const header = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><div style="color:${FG};font:700 12px ${FONT};letter-spacing:0.3px;text-transform:uppercase">Coding this week</div><div style="color:${DIM};font:400 11px ${FONT}">${total}</div></div>`
@@ -127,7 +128,8 @@ function renderCard({ presence, profile, stats, avatarDataUri, decorationDataUri
 
   const headerH = 92
   const activityH = live ? 108 : 60
-  const statsH = 78
+  const langCount = Math.min(stats?.languages?.length ?? 0, MAX_LANGUAGES) || 1
+  const statsH = 12 + 18 + langCount * 17 + 14
   const h = headerH + activityH + statsH
   const avatar = avatarHtml(p, profile, avatarDataUri, decorationDataUri, fallbackUserId)
   const badgesEl = badgesHtml(badges)
