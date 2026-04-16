@@ -143,37 +143,38 @@ function activityCardHtml(act: Activity, largeDataUri: string | null, smallDataU
     </div>`
 }
 
-function statsCardHtml(stats: Stats): string {
-  const top = stats.languages.slice(0, 3)
+// Compact stats row — 3 lang bars + total hours on the right. Designed to
+// stack under the activity row so both are visible in one card.
+function statsRowHtml(stats: Stats | null): string {
+  const top = (stats?.languages ?? []).slice(0, 3)
+  const total = stats ? formatHours(stats.totalHours) : '—'
   const max = Math.max(...top.map((l) => l.hours), 0.0001)
-  const tile = activityIconTile(null, null, '#0098ff', CODE_ICON)
-  const total = formatHours(stats.totalHours)
 
-  const bars = top.length === 0
-    ? `<div style="color:${DIM};font:400 13px ${FONT}">no stats yet this week</div>`
+  const header = `
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+      <div style="color:${FG};font:700 12px ${FONT};letter-spacing:0.3px;text-transform:uppercase">Coding this week</div>
+      <div style="color:${DIM};font:400 11px ${FONT}">${total}</div>
+    </div>`
+
+  const body = top.length === 0
+    ? `<div style="color:${DIM};font:italic 400 11px ${FONT}">no stats yet — start coding to populate</div>`
     : top.map((l) => {
         const pct = Math.max(4, Math.round((l.hours / max) * 100))
         const hrs = l.hours >= 1 ? `${l.hours.toFixed(1)}h` : `${Math.round(l.hours * 60)}m`
         return `
-          <div style="display:flex;align-items:center;gap:8px">
-            <div style="color:${MUTED};font:400 12px ${FONT};width:78px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(l.name)}</div>
-            <div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
-              <div style="width:${pct}%;height:100%;background:${ACCENT};border-radius:3px"></div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:3px">
+            <div style="color:${MUTED};font:400 11px ${FONT};width:78px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(l.name)}</div>
+            <div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:${ACCENT};border-radius:2px"></div>
             </div>
-            <div style="color:${DIM};font:400 11px ${FONT};width:36px;text-align:right">${hrs}</div>
+            <div style="color:${DIM};font:400 10px ${FONT};width:34px;text-align:right">${hrs}</div>
           </div>`
       }).join('')
 
   return `
-    <div style="display:flex;flex-direction:row;gap:18px;padding:14px 16px;align-items:center">
-      ${tile}
-      <div style="display:flex;flex-direction:column;gap:6px;min-width:0;flex:1">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <div style="color:${FG};font:700 14px ${FONT}">Coding this week</div>
-          <div style="color:${DIM};font:400 12px ${FONT}">${total}</div>
-        </div>
-        ${bars}
-      </div>
+    <div style="padding:12px 16px 14px">
+      ${header}
+      ${body}
     </div>`
 }
 
@@ -229,16 +230,18 @@ export function renderCard(input: RenderInput): string {
     : null
 
   const live = p ? realActivity(p.activities) : undefined
-  const hasStats = !!input.stats && (input.stats.languages.length > 0 || input.stats.totalHours > 0)
 
-  let body: string
-  if (live) body = activityCardHtml(live, input.activityLargeDataUri, input.activitySmallDataUri)
-  else if (hasStats) body = statsCardHtml(input.stats!)
-  else body = idleHtml(p && p.status !== 'offline' ? 'Not doing anything right now' : 'Currently offline')
+  // Both rows always render. Activity row falls back to an idle message if
+  // the user isn't doing anything real. Stats row is separate below it.
+  const activitySection = live
+    ? activityCardHtml(live, input.activityLargeDataUri, input.activitySmallDataUri)
+    : idleHtml(p && p.status !== 'offline' ? 'Not doing anything right now' : 'Currently offline')
+  const statsSection = statsRowHtml(input.stats)
 
   const headerH = 92
-  const bodyH = 108
-  const h = headerH + bodyH
+  const activityH = live ? 108 : 60
+  const statsH = 78
+  const h = headerH + activityH + statsH
 
   const avatar = avatarHtml(p, input.profile, input.avatarDataUri, input.decorationDataUri, input.fallbackUserId)
   const badges = badgesHtml(input.badges)
@@ -269,7 +272,9 @@ export function renderCard(input: RenderInput): string {
         </div>
       </div>
       <div style="height:1px;background:${DIVIDER};margin:0 16px"></div>
-      ${body}
+      ${activitySection}
+      <div style="height:1px;background:${DIVIDER};margin:0 16px"></div>
+      ${statsSection}
     </div>
   </foreignObject>
 </svg>`

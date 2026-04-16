@@ -92,19 +92,19 @@ const activityCardHtml = (act, largeUri, smallUri) => {
   return `<div style="display:flex;flex-direction:row;gap:18px;padding:14px 16px;align-items:center">${tileEl}<div style="display:flex;flex-direction:column;gap:4px;min-width:0;flex:1">${lines}</div></div>`
 }
 
-const statsCardHtml = (stats) => {
-  const top = stats.languages.slice(0, 3)
+const statsRowHtml = (stats) => {
+  const top = (stats?.languages ?? []).slice(0, 3)
+  const total = stats ? formatHours(stats.totalHours) : '—'
   const max = Math.max(...top.map((l) => l.hours), 0.0001)
-  const tileEl = activityIconTile(null, null, '#0098ff', CODE_ICON)
-  const total = formatHours(stats.totalHours)
-  const bars = top.length === 0
-    ? `<div style="color:${DIM};font:400 13px ${FONT}">no stats yet this week</div>`
+  const header = `<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px"><div style="color:${FG};font:700 12px ${FONT};letter-spacing:0.3px;text-transform:uppercase">Coding this week</div><div style="color:${DIM};font:400 11px ${FONT}">${total}</div></div>`
+  const body = top.length === 0
+    ? `<div style="color:${DIM};font:italic 400 11px ${FONT}">no stats yet — start coding to populate</div>`
     : top.map((l) => {
         const pct = Math.max(4, Math.round((l.hours / max) * 100))
         const hrs = l.hours >= 1 ? `${l.hours.toFixed(1)}h` : `${Math.round(l.hours * 60)}m`
-        return `<div style="display:flex;align-items:center;gap:8px"><div style="color:${MUTED};font:400 12px ${FONT};width:78px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(l.name)}</div><div style="flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${ACCENT};border-radius:3px"></div></div><div style="color:${DIM};font:400 11px ${FONT};width:36px;text-align:right">${hrs}</div></div>`
+        return `<div style="display:flex;align-items:center;gap:8px;margin-top:3px"><div style="color:${MUTED};font:400 11px ${FONT};width:78px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(l.name)}</div><div style="flex:1;height:4px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${ACCENT};border-radius:2px"></div></div><div style="color:${DIM};font:400 10px ${FONT};width:34px;text-align:right">${hrs}</div></div>`
       }).join('')
-  return `<div style="display:flex;flex-direction:row;gap:18px;padding:14px 16px;align-items:center">${tileEl}<div style="display:flex;flex-direction:column;gap:6px;min-width:0;flex:1"><div style="display:flex;justify-content:space-between;align-items:baseline"><div style="color:${FG};font:700 14px ${FONT}">Coding this week</div><div style="color:${DIM};font:400 12px ${FONT}">${total}</div></div>${bars}</div></div>`
+  return `<div style="padding:12px 16px 14px">${header}${body}</div>`
 }
 
 const idleHtml = (msg) =>
@@ -120,14 +120,15 @@ function renderCard({ presence, profile, stats, avatarDataUri, decorationDataUri
     ? escapeHtml((custom.emoji?.name ? `${custom.emoji.name} ` : '') + custom.state)
     : null
   const live = p ? realActivity(p.activities) : undefined
-  const hasStats = !!stats && (stats.languages.length > 0 || stats.totalHours > 0)
+  const activitySection = live
+    ? activityCardHtml(live, activityLargeDataUri, activitySmallDataUri)
+    : idleHtml(p && p.status !== 'offline' ? 'Not doing anything right now' : 'Currently offline')
+  const statsSection = statsRowHtml(stats)
 
-  let body
-  if (live) body = activityCardHtml(live, activityLargeDataUri, activitySmallDataUri)
-  else if (hasStats) body = statsCardHtml(stats)
-  else body = idleHtml(p && p.status !== 'offline' ? 'Not doing anything right now' : 'Currently offline')
-
-  const headerH = 92, bodyH = 108, h = headerH + bodyH
+  const headerH = 92
+  const activityH = live ? 108 : 60
+  const statsH = 78
+  const h = headerH + activityH + statsH
   const avatar = avatarHtml(p, profile, avatarDataUri, decorationDataUri, fallbackUserId)
   const badgesEl = badgesHtml(badges)
   const customHtml = customLine
@@ -138,7 +139,7 @@ function renderCard({ presence, profile, stats, avatarDataUri, decorationDataUri
     ? `<div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="color:${FG};font:700 16px ${FONT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${username}</div><div style="display:flex;align-items:center;gap:4px;flex:none">${badgesEl}</div></div>`
     : `<div style="color:${FG};font:700 16px ${FONT};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${username}</div>`
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="psyduck status"><foreignObject x="0" y="0" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;background:${BG};border-radius:12px;overflow:hidden;font-family:${FONT}"><div style="display:flex;flex-direction:row;align-items:center;gap:14px;padding:14px 16px;height:${headerH - 28}px">${avatar}<div style="display:flex;flex-direction:column;min-width:0;flex:1">${usernameRow}${customHtml}</div></div><div style="height:1px;background:${DIVIDER};margin:0 16px"></div>${body}</div></foreignObject></svg>`
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" role="img" aria-label="psyduck status"><foreignObject x="0" y="0" width="${w}" height="${h}"><div xmlns="http://www.w3.org/1999/xhtml" style="width:${w}px;height:${h}px;background:${BG};border-radius:12px;overflow:hidden;font-family:${FONT}"><div style="display:flex;flex-direction:row;align-items:center;gap:14px;padding:14px 16px;height:${headerH - 28}px">${avatar}<div style="display:flex;flex-direction:column;min-width:0;flex:1">${usernameRow}${customHtml}</div></div><div style="height:1px;background:${DIVIDER};margin:0 16px"></div>${activitySection}<div style="height:1px;background:${DIVIDER};margin:0 16px"></div>${statsSection}</div></foreignObject></svg>`
 }
 
 // Mock badges (real ones are real PNGs from Discord CDN — preview just uses
