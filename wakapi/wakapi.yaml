@@ -12,6 +12,7 @@ app:
   inactive_threshold_days: 365
   import_enabled: false
   custom_languages: {}
+  heartbeats_timeout_sec: 600
 
 security:
   password_salt: CHANGE_ME_TO_A_RANDOM_STRING
