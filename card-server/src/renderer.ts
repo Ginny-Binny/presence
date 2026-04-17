@@ -33,7 +33,10 @@ function escapeHtml(s: string): string {
 }
 
 function realActivity(acts: Activity[]): Activity | undefined {
-  return acts.find((a) => a.type !== 4 && !!a.name)
+  // VS Code always wins over Spotify when both are live
+  return acts.find((a) => a.type === 0 && !!a.name)
+    ?? acts.find((a) => a.type !== 4 && a.type !== 2 && !!a.name)
+    ?? acts.find((a) => a.type === 2 && !!a.name)
 }
 
 function customStatus(acts: Activity[]): Activity | undefined {

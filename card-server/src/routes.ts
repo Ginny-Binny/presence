@@ -45,7 +45,10 @@ export async function handleCard(req: IncomingMessage, res: ServerResponse, deps
   const stats = statsR.status === 'fulfilled' ? statsR.value : null
 
   // Stage 2: derived assets that depend on stage 1 — also parallel.
-  const liveActivity = presence?.activities.find((a) => a.type !== 4 && !!a.name)
+  // Same priority as renderer: Playing > Streaming/Watching/Competing > Listening.
+  const liveActivity = presence?.activities.find((a) => a.type === 0 && !!a.name)
+    ?? presence?.activities.find((a) => a.type !== 4 && a.type !== 2 && !!a.name)
+    ?? presence?.activities.find((a) => a.type === 2 && !!a.name)
   const [avatarDataUri, decorationDataUri, badges, activityLargeDataUri, activitySmallDataUri, clanBadgeDataUri] =
     await Promise.all([
       settled(fetchAvatarDataUri(deps.userId, profile?.avatar ?? presence?.avatar ?? null)),
