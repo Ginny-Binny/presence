@@ -40,9 +40,24 @@ export async function fetchWakapiStats(baseUrl: string, apiKey: string): Promise
       return cache.getStale(KEY)
     }
     const body = (await res.body.json()) as { data?: { languages?: { name: string; total_seconds: number }[]; total_seconds?: number } }
-    const langs = body.data?.languages ?? []
+    const rawLangs = body.data?.languages ?? []
+    // Merge "Unknown" time into C++ so it doesn't clutter the stats bar.
+    let cppHours = 0
+    const filtered = rawLangs.filter((l) => {
+      if (l.name.toLowerCase() === 'unknown') { cppHours += l.total_seconds / 3600; return false }
+      return true
+    })
+    const merged = filtered.map((l) =>
+      l.name.toLowerCase() === 'c++' ? { name: 'C++', hours: l.total_seconds / 3600 + cppHours } : { name: l.name, hours: l.total_seconds / 3600 },
+    )
+    // If C++ didn't exist in the list but Unknown did, add it.
+    if (cppHours > 0 && !filtered.some((l) => l.name.toLowerCase() === 'c++')) {
+      merged.push({ name: 'C++', hours: cppHours })
+    }
+    // Sort by hours descending so the biggest bar is on top.
+    merged.sort((a, b) => b.hours - a.hours)
     const stats: Stats = {
-      languages: langs.map((l) => ({ name: l.name, hours: l.total_seconds / 3600 })),
+      languages: merged,
       totalHours: (body.data?.total_seconds ?? 0) / 3600,
     }
     cache.set(KEY, stats, FRESH_MS)
