@@ -157,7 +157,7 @@ function statsRowHtml(stats: Stats | null): string {
 
   const header = `
     <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-      <div style="color:${FG};font:700 12px ${FONT};letter-spacing:0.3px;text-transform:uppercase">Weekly Stats</div>
+      <div style="color:${FG};font:700 13px ${FONT}">Weekly Stats</div>
       <div style="color:${DIM};font:400 11px ${FONT}">${total}</div>
     </div>`
 
