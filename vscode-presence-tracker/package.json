@@ -1,0 +1,23 @@
+{
+  "name": "presence-tracker",
+  "displayName": "Presence Tracker",
+  "description": "Tracks file-open time and sends heartbeats to Wakapi every 60s",
+  "version": "0.1.0",
+  "publisher": "ginny-binny",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "Presence Tracker",
+      "properties": {
+        "presenceTracker.intervalSeconds": {
+          "type": "number",
+          "default": 60,
+          "description": "How often to send a heartbeat (seconds)"
+        }
+      }
+    }
+  }
+}
