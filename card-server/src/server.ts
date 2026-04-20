@@ -1,7 +1,16 @@
 import http from 'node:http'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import type Redis from 'ioredis'
 import { log } from './log.js'
 import { handleCard, handleHealthz, notFound, serverError } from './routes.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// Logo lives at repo root — two levels up from dist/
+const faviconPath = path.resolve(__dirname, '..', '..', 'presence_logo.svg')
+let faviconBuf: Buffer | null = null
+try { faviconBuf = fs.readFileSync(faviconPath) } catch { /* missing is fine */ }
 
 type Opts = {
   port: number
@@ -26,6 +35,11 @@ export function startServer(opts: Opts): http.Server {
       const url = new URL(req.url || '/', 'http://x')
       if (url.pathname === '/card.svg') return await handleCard(req, res, deps)
       if (url.pathname === '/healthz') return await handleHealthz(req, res, deps)
+      if ((url.pathname === '/favicon.ico' || url.pathname === '/favicon.svg') && faviconBuf) {
+        res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400' })
+        res.end(faviconBuf)
+        return
+      }
       return notFound(req, res)
     } catch (err) {
       serverError(req, res, err)
