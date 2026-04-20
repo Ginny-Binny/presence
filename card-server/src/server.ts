@@ -7,8 +7,8 @@ import { log } from './log.js'
 import { handleCard, handleHealthz, notFound, serverError } from './routes.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-// Logo lives at repo root — two levels up from dist/
-const faviconPath = path.resolve(__dirname, '..', '..', 'presence_logo.svg')
+// Blue dev badge icon lives at repo root — two levels up from dist/
+const faviconPath = path.resolve(__dirname, '..', '..', 'favicon.png')
 let faviconBuf: Buffer | null = null
 try { faviconBuf = fs.readFileSync(faviconPath) } catch { /* missing is fine */ }
 
@@ -35,8 +35,8 @@ export function startServer(opts: Opts): http.Server {
       const url = new URL(req.url || '/', 'http://x')
       if (url.pathname === '/card.svg') return await handleCard(req, res, deps)
       if (url.pathname === '/healthz') return await handleHealthz(req, res, deps)
-      if ((url.pathname === '/favicon.ico' || url.pathname === '/favicon.svg') && faviconBuf) {
-        res.writeHead(200, { 'content-type': 'image/svg+xml', 'cache-control': 'public, max-age=86400' })
+      if ((url.pathname === '/favicon.ico' || url.pathname === '/favicon.png') && faviconBuf) {
+        res.writeHead(200, { 'content-type': 'image/png', 'cache-control': 'public, max-age=86400' })
         res.end(faviconBuf)
         return
       }
