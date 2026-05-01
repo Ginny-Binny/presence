@@ -42,9 +42,13 @@ export async function fetchWakapiStats(baseUrl: string, apiKey: string): Promise
     const body = (await res.body.json()) as { data?: { languages?: { name: string; total_seconds: number }[]; total_seconds?: number } }
     const rawLangs = body.data?.languages ?? []
     // Merge "Unknown" time into C++ so it doesn't clutter the stats bar.
+    // DotENV / Ini get dropped entirely — config files aren't real "coding".
+    const HIDDEN = new Set(['dotenv', 'ini'])
     let cppHours = 0
     const filtered = rawLangs.filter((l) => {
-      if (l.name.toLowerCase() === 'unknown') { cppHours += l.total_seconds / 3600; return false }
+      const k = l.name.toLowerCase()
+      if (HIDDEN.has(k)) return false
+      if (k === 'unknown') { cppHours += l.total_seconds / 3600; return false }
       return true
     })
     const merged = filtered.map((l) =>
